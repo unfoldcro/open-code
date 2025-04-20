@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aurora Text</title>
+  <style>
+    /* Container */
+    .aurora-text {
+      position: relative;
+      display: inline-block;
+    }
+    /* Hide for visual users, show to screen‑readers */
+    .aurora-text .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    /* The visible animated gradient text */
+    .aurora-text .aurora-content {
+      position: relative;
+      /* double‑width gradient so it can animate */
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      animation-name: aurora;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+      /* duration is set by JS */
+    }
+    /* Keyframes that shift the gradient */
+    @keyframes aurora {
+      0%   { background-position:   0% 0; }
+      50%  { background-position: 100% 0; }
+      100% { background-position:   0% 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 
+    data-colors: comma‑separated list of hex colors
+    data-speed: speed multiplier (1 = default, 2 = twice as fast, etc.)
+  -->
+  <span class="aurora-text" data-colors="#FF0080,#7928CA,#0070F3,#38bdf8" data-speed="1">
+    <span class="sr-only">Aurora Text</span>
+    <span class="aurora-content">Aurora Text</span>
+  </span>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll('.aurora-text').forEach(el => {
+        const content = el.querySelector('.aurora-content');
+        // parse colors or fallback to defaults
+        const colorsAttr = el.getAttribute('data-colors');
+        const colors = colorsAttr
+          ? colorsAttr.split(',').map(c => c.trim())
+          : ['#FF0080','#7928CA','#0070F3','#38bdf8'];
+        // parse speed or default to 1
+        const speedAttr = parseFloat(el.getAttribute('data-speed'));
+        const speed = !isNaN(speedAttr) && speedAttr > 0 ? speedAttr : 1;
+        // apply gradient and animation duration
+        content.style.backgroundImage = `linear-gradient(135deg, ${colors.join(', ')}, ${colors[0]})`;
+        content.style.animationDuration = `${10 / speed}s`;
+      });
+    });
+  </script>
+
+</body>
+</html>
