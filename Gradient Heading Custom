@@ -19,6 +19,7 @@
       margin: -1px;
       overflow: hidden;
       clip: rect(0, 0, 0, 0);
+
       white-space: nowrap;
       border: 0;
     }
@@ -31,6 +32,9 @@
       background-clip: text;
       color: transparent;
       -webkit-text-fill-color: transparent;
+      font-size:5rem;
+      font-family:'arial';
+      font-weight:600;
       animation-name: aurora;
       animation-timing-function: linear;
       animation-iteration-count: infinite;
