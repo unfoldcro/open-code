@@ -1,0 +1,486 @@
+
+{%- if settings.milestone_bar_enabled -%}
+  {%- liquid
+    assign mode = settings.milestone_bar_mode_default
+
+    if mode == 'price'
+      assign target_1 = settings.milestone_1_value | times: 100
+      assign target_2 = settings.milestone_2_value | times: 100
+      assign target_3 = settings.milestone_3_value | times: 100
+      assign current = cart.total_price
+    else
+      assign target_1 = settings.milestone_1_value
+      assign target_2 = settings.milestone_2_value
+      assign target_3 = settings.milestone_3_value
+      assign current = cart.item_count
+    endif
+
+    assign max_target = target_3
+    if max_target <= 0
+      assign max_target = 1
+    endif
+
+    assign capped_current = current | at_most: max_target
+    assign progress_percent = capped_current | times: 100.0 | divided_by: max_target | round: 1
+
+    assign active_color = settings.milestone_active_color
+    assign bar_bg_color = settings.milestone_bar_color
+
+    assign remaining = 0
+    assign next_reward = ''
+
+    if current < target_1
+      assign remaining = target_1 | minus: current
+      assign next_reward = settings.milestone_1_text_bottom
+    elsif current < target_2
+      assign remaining = target_2 | minus: current
+      assign next_reward = settings.milestone_2_text_bottom
+    elsif current < target_3
+      assign remaining = target_3 | minus: current
+      assign next_reward = settings.milestone_3_text_bottom
+    endif
+
+    capture remaining_str
+      if mode == 'price'
+        echo remaining | money
+      else
+        echo remaining
+      endif
+    endcapture
+
+    capture t1
+      if mode == 'price'
+        echo target_1 | money
+      else
+        echo settings.milestone_1_qty_label | default: target_1
+      endif
+    endcapture
+
+    capture t2
+      if mode == 'price'
+        echo target_2 | money
+      else
+        echo settings.milestone_2_qty_label | default: target_2
+      endif
+    endcapture
+
+    capture t3
+      if mode == 'price'
+        echo target_3 | money
+      else
+        echo settings.milestone_3_qty_label | default: target_3
+      endif
+    endcapture
+
+    capture message
+      if remaining > 0
+        echo settings.milestone_1_text_top
+        echo ' '
+        echo remaining_str
+        echo ' '
+        echo 'more for '
+        echo next_reward
+      else
+        echo settings.milestone_3_text_top
+      endif
+    endcapture
+  -%}
+
+  <div
+    class="milestone-container"
+    data-milestone
+    data-milestone-key="{{ mode }}-{{ settings.milestone_1_value }}-{{ settings.milestone_2_value }}-{{ settings.milestone_3_value }}"
+    data-progress="{{ progress_percent }}"
+    style="--milestone-active: {{ active_color }}; --milestone-bar-bg: {{ bar_bg_color }};"
+  >
+    <div class="milestone-message">{{ message }}</div>
+
+    <div class="milestone-targets">
+      <span>{{ t1 }}</span>
+      <span>{{ t2 }}</span>
+      <span>{{ t3 }}</span>
+    </div>
+
+    <div
+      class="milestone-bar"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="{{ progress_percent }}"
+    >
+      <div class="progress-fill" data-progress-fill></div>
+
+      <div class="segments" aria-hidden="true">
+        <div class="segment {% if current >= target_1 %}reached{% endif %}">
+          {{ settings.milestone_1_text_bottom }}
+        </div>
+        <div class="segment {% if current >= target_2 %}reached{% endif %}">
+          {{ settings.milestone_2_text_bottom }}
+        </div>
+        <div class="segment {% if current >= target_3 %}reached{% endif %}">
+          {{ settings.milestone_3_text_bottom }}
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .milestone-container{
+    padding:12px;
+    background:#fff;
+    border-radius:8px;
+    margin:12px 0;
+    box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .milestone-message{
+    text-align:center;
+    font-weight:600;
+    color:#e67e22;
+    font-size:0.95rem;
+    margin-bottom:8px;
+  }
+
+  .milestone-targets{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    align-items:center;
+    margin-bottom:6px;
+    gap:4px 10px;
+    font-size:0.9rem;
+    color:#000;
+  }
+  .milestone-targets span:nth-child(1){
+    grid-column:2;
+    grid-row:2;
+    margin-left:-52px;
+    justify-self:start;
+  }
+  .milestone-targets span:nth-child(2){
+    grid-column:3;
+    grid-row:2;
+    margin-left:-56px;
+    justify-self:start;
+  }
+  .milestone-targets span:nth-child(3){
+  grid-column:3;
+    grid-row:2;
+    margin-right: 10px;
+    justify-self:end;
+  }
+  .milestone-targets span{
+    line-height:1.1;
+    white-space:nowrap;
+  }
+
+  .milestone-bar{
+    height:40px;
+    border-radius:999px;
+    overflow:hidden;
+    position:relative;
+    background: var(--milestone-bar-bg, #eee);
+  }
+
+  .progress-fill{
+    position:absolute;
+    top:0;
+    left:0;
+    height:100%;
+    width:0%;
+    border-radius:999px;
+    background: var(--milestone-active, #4caf50);
+
+    transition: width 650ms ease;
+    will-change: width;
+  }
+
+  .segments{
+    position:absolute;
+    inset:0;
+    display:flex;
+    z-index:1;
+  }
+
+  .segment{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    /* Keep all segment text black (Free shipping / Extra discount / Free gift) */
+    color:#000;
+
+    font-weight:600;
+    font-size:0.8rem;
+    padding:0 8px;
+    text-align:center;
+    border-right:1px solid rgba(0,0,0,0.1);
+  }
+
+  .segment:last-child{ border-right:none; }
+
+  @media (max-width:480px){
+    .milestone-message{ font-size:0.85rem; }
+    .segment{ font-size:0.75rem; }
+  }
+{% endstylesheet %}
+
+<script defer>
+  (function () {
+    var STORAGE_PREFIX = 'milestone_progress_v2:'; // bump if you change logic later
+    var rafInit = 0;
+
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
+
+    function getKey(root) {
+      // Best: explicit key on container
+      var key = root.getAttribute('data-milestone-key');
+      if (key) return key;
+
+      // Next best: section id wrapper (if present)
+      var section = root.closest('[data-section-id]');
+      if (section && section.getAttribute('data-section-id')) {
+        return 'section:' + section.getAttribute('data-section-id');
+      }
+
+      // Worst fallback: position index (not stable)
+      return 'idx:' + Array.prototype.indexOf.call(document.querySelectorAll('[data-milestone]'), root);
+    }
+
+    function readStored(key) {
+      try {
+        var raw = sessionStorage.getItem(STORAGE_PREFIX + key);
+        var n = parseFloat(raw);
+        return Number.isNaN(n) ? null : clamp(n, 0, 100);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeStored(key, val) {
+      try {
+        sessionStorage.setItem(STORAGE_PREFIX + key, String(clamp(val, 0, 100)));
+      } catch (e) {}
+    }
+
+    function setWidthNoAnim(el, percent) {
+      // Temporarily disable transitions so it doesn't animate when setting the starting point
+      var prev = el.style.transition;
+      el.style.transition = 'none';
+      el.style.width = percent + '%';
+      // Force layout flush
+      el.getBoundingClientRect();
+      // Restore transition
+      el.style.transition = prev;
+    }
+
+    function animateMilestone(root) {
+      if (!root) return;
+
+      var fill = root.querySelector('[data-progress-fill]');
+      if (!fill) return;
+
+      var target = parseFloat(root.getAttribute('data-progress') || '0');
+      if (Number.isNaN(target)) target = 0;
+      target = clamp(target, 0, 100);
+
+      var key = getKey(root);
+
+      // Read last progress across re-renders
+      var last = readStored(key);
+
+      // First time: do NOT animate from 0. Start at target.
+      var from = last == null ? target : last;
+
+      // Set starting width instantly (no animation)
+      setWidthNoAnim(fill, from);
+
+      // Only animate if changed (forward OR backward)
+      if (Math.abs(target - from) >= 0.1) {
+        requestAnimationFrame(function () {
+          fill.style.width = target + '%';
+        });
+      }
+
+      // aria sync
+      var bar = root.querySelector('.milestone-bar');
+      if (bar) bar.setAttribute('aria-valuenow', String(target));
+
+      // Persist for next update/rerender
+      writeStored(key, target);
+    }
+
+    function initAll() {
+      if (rafInit) cancelAnimationFrame(rafInit);
+      rafInit = requestAnimationFrame(function () {
+        document.querySelectorAll('[data-milestone]').forEach(animateMilestone);
+        rafInit = 0;
+      });
+    }
+
+    // Init
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAll, { once: true });
+    } else {
+      initAll();
+    }
+
+    // Theme editor
+    document.addEventListener('shopify:section:load', initAll);
+
+    // Common cart events (theme dependent)
+    ['cart:updated', 'cart:refresh', 'cart-drawer:refresh', 'cart-drawer:updated'].forEach(function (evt) {
+      document.addEventListener(evt, initAll);
+    });
+
+    // Mutation observer (debounced via raf)
+    var mo = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        if (mutations[i].addedNodes && mutations[i].addedNodes.length) {
+          initAll();
+          break;
+        }
+      }
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  })();
+</script>
+
+
+{% comment %} Paste in Setting Schema {% endcomment %}
+
+  {
+    "name": "Cart Milestone bar",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "milestone_bar_enabled",
+        "label": "Enable milestone bar",
+        "default": true
+      },
+      {
+        "type": "select",
+        "id": "milestone_bar_mode_default",
+        "label": "Default mode",
+        "options": [
+          {
+            "value": "price",
+            "label": "Price"
+          },
+          {
+            "value": "qty",
+            "label": "Quantity"
+          }
+        ],
+        "default": "price"
+      },
+      {
+        "type": "number",
+        "id": "milestone_1_value",
+        "label": "Milestone 1 target (Price. in currency units, Qty. in items)",
+        "default": 999
+      },
+      {
+        "type": "number",
+        "id": "milestone_2_value",
+        "label": "Milestone 2 target (Price. in currency units, Qty. in items)",
+        "default": 1499
+      },
+      {
+        "type": "number",
+        "id": "milestone_3_value",
+        "label": "Milestone 3 target (Price. in currency units, Qty. in items)",
+        "default": 1999
+      },
+      {
+        "type": "header",
+        "content": "Milestones"
+      },
+      {
+        "type": "text",
+        "id": "milestone_1_text_top",
+        "label": "Milestone 1. Top text",
+        "default": "Add more to unlock"
+      },
+      {
+        "type": "text",
+        "id": "milestone_1_text_bottom",
+        "label": "Milestone 1. Bottom text",
+        "default": "Free shipping"
+      },
+      {
+        "type": "text",
+        "id": "milestone_2_text_top",
+        "label": "Milestone 2. Top text",
+        "default": "Almost there"
+      },
+      {
+        "type": "text",
+        "id": "milestone_2_text_bottom",
+        "label": "Milestone 2. Bottom text",
+        "default": "Extra discount"
+      },
+      {
+        "type": "text",
+        "id": "milestone_3_text_top",
+        "label": "Milestone 3. Top text",
+        "default": "Unlocked"
+      },
+      {
+        "type": "text",
+        "id": "milestone_3_text_bottom",
+        "label": "Milestone 3. Bottom text",
+        "default": "Free gift"
+      },
+      {
+        "type": "header",
+        "content": "Milestone bar — Quantity labels"
+      },
+      {
+        "type": "text",
+        "id": "milestone_1_qty_label",
+        "label": "Milestone 1 label (qty mode)",
+        "default": "1 item"
+      },
+      {
+        "type": "text",
+        "id": "milestone_2_qty_label",
+        "label": "Milestone 2 label (qty mode)",
+        "default": "2 items"
+      },
+      {
+        "type": "text",
+        "id": "milestone_3_qty_label",
+        "label": "Milestone 3 label (qty mode)",
+        "default": "3 items"
+      },
+      {
+        "type": "header",
+        "content": "Colors"
+      },
+      {
+        "type": "color",
+        "id": "milestone_active_color",
+        "label": "Milestone active color",
+        "default": "#00C853"
+      },
+      {
+        "type": "color",
+        "id": "milestone_bar_color",
+        "label": "Milestone bar color",
+        "default": "#E5E7EB"
+      },
+      {
+        "type": "color",
+        "id": "milestone_color",
+        "label": "Milestone color",
+        "default": "#9CA3AF"
+      }
+    ]
+  },
+
+  {% comment %} End {% endcomment %}
